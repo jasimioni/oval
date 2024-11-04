@@ -1,0 +1,5 @@
+packaging
+xmltodict
+argparse
+tabulate
+requests

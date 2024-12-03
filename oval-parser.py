@@ -30,7 +30,7 @@ fixed_regex = {
     "bionic": r"linux package in bionic.*?(4\.1[53]\.0-[0-9]+)",
     "focal": r"linux package in focal.*?(5\.4\.[0-9]+-[0-9]+)",
     "jammy": r"linux package in jammy.*?(5\.1[35]\.[0-9]+-[0-9]+)",
-    "noble": r"linux package in noble.*?(6\.[58]\.[0-9]+-[0-9]+)",
+    "noble": r"linux package in noble.*?(6\.[568]\.[0-9]+-[0-9]+)",
 }
 
 def download_oval(distro):

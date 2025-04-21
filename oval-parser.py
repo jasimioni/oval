@@ -24,14 +24,8 @@ Examples:
     python3 oval-parser.py --distro bionic --ovalfile com.ubuntu.bionic.cve.oval.xml.bz2    
     python3 oval-parser.py --distro jammy --kernel 5.15.0-100
     python3 oval-parser.py --distro noble --kernel 6.8.0-40 --debug
+    python3 oval-parser.py --distro jammy --flavor fips --debug
 """ 
-
-fixed_regex = {
-    "bionic": r"linux package in bionic.*?(4\.1[53]\.0-[0-9]+)",
-    "focal": r"linux package in focal.*?(5\.4\.[0-9]+-[0-9]+)",
-    "jammy": r"linux package in jammy.*?(5\.1[35]\.[0-9]+-[0-9]+)",
-    "noble": r"linux package in noble.*?(6\.[568]\.[0-9]+-[0-9]+)",
-}
 
 def download_oval(distro):
     """
@@ -54,7 +48,7 @@ def download_oval(distro):
     return filename
 
 
-def process_oval(xml, fixed_regex, kernel):
+def process_oval(xml, flavor, distro, kernel):
     """
     Process the OVAL XML data and extract CVE information.
 
@@ -67,6 +61,7 @@ def process_oval(xml, fixed_regex, kernel):
         list: A list of CVE information, including CVE ID, severity, status, 
               whether it is up to date, and the fixed version.
     """
+    regex = f"{flavor} package in {distro}.*?([0-9]{{1,2}}\.[0-9]+\.[0-9]+-[0-9]+)"
     cves = []
     for definition in xml["oval_definitions"]["definitions"]["definition"]:
         d_class = definition["@class"]
@@ -77,12 +72,12 @@ def process_oval(xml, fixed_regex, kernel):
 
             is_kernel = 0
             criteria = json.dumps(definition["criteria"]["criteria"])
-            if re.search("Is kernel linux running", criteria):
+            if re.search(f"Is kernel {flavor} running", criteria):
                 is_kernel = 1
 
             if is_kernel:
                 status = "Vulnerable"
-                match = re.search(fixed_regex, criteria)
+                match = re.search(regex, criteria)
                 up_to_date = None
                 fixed_version = None
                 if match:
@@ -114,6 +109,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--kernel", type=str, help="Kernel version to compare with")
     parser.add_argument("--savefile", type=str, help="Save output to file")
+    parser.add_argument("--flavor", type=str, help="Kernel flavor to use (example fips)")
     parser.add_argument(
         "--debug",
         action="store_const",
@@ -149,7 +145,14 @@ if __name__ == "__main__":
 
     doc = xmltodict.parse(file_contents)
 
-    data = process_oval(doc, fixed_regex[args.distro], args.kernel)
+    flavor = 'linux'
+    if args.flavor:
+        if args.flavor.startswith('linux'):
+            flavor = args.flavor
+        else:
+            flavor = flavor + '-' + args.flavor
+
+    data = process_oval(doc, flavor, args.distro, args.kernel)
     headers = ["CVE", "Severity", "Status", "Up to date", "Fixed Version"]
 
     if args.savefile:
